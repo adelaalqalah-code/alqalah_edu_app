@@ -37,6 +37,14 @@ jobs:
           cp -r _backup/assets . 2>/dev/null || true
           cp _backup/EXCEL_MODULE_GUIDE.md . 2>/dev/null || true
       
+      - name: Create missing assets directory
+        run: mkdir -p assets/images
+      
+      - name: Enable core library desugaring
+        run: |
+          sed -i 's/targetCompatibility = JavaVersion.VERSION_17/targetCompatibility = JavaVersion.VERSION_17\n        coreLibraryDesugaringEnabled true/' android/app/build.gradle
+          sed -i 's/dependencies {/dependencies {\n    coreLibraryDesugaring '\''com.android.tools:desugar_jdk_libs:2.0.4'\''/' android/app/build.gradle
+      
       - run: flutter pub get
       
       - run: flutter build apk --release
