@@ -1,0 +1,48 @@
+name: Build Flutter APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.1'
+          channel: 'stable'
+      
+      - name: Backup project files
+        run: |
+          mkdir -p _backup
+          cp -r lib _backup/
+          cp pubspec.yaml _backup/
+          cp -r assets _backup/ 2>/dev/null || true
+          cp EXCEL_MODULE_GUIDE.md _backup/ 2>/dev/null || true
+      
+      - name: Recreate Flutter project
+        run: |
+          rm -rf android ios test .metadata analysis_options.yaml
+          flutter create . --project-name alqalah_edu_app
+      
+      - name: Restore original files
+        run: |
+          rm -rf lib
+          cp -r _backup/lib .
+          cp _backup/pubspec.yaml .
+          cp -r _backup/assets . 2>/dev/null || true
+          cp _backup/EXCEL_MODULE_GUIDE.md . 2>/dev/null || true
+      
+      - run: flutter pub get
+      
+      - run: flutter build apk --release
+      
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: alqalah-edu-app-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
