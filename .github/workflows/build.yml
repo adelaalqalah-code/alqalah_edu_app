@@ -8,49 +8,143 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
       
-      - uses: subosito/flutter-action@v2
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.47.1'
           channel: 'stable'
+          cache: true
       
-      - name: Backup project files
+      - name: Backup original project files
         run: |
-          mkdir -p _backup
-          cp -r lib _backup/
-          cp pubspec.yaml _backup/
-          cp -r assets _backup/ 2>/dev/null || true
-          cp EXCEL_MODULE_GUIDE.md _backup/ 2>/dev/null || true
+          echo "📦 Backing up project files..."
+          mkdir -p .project_backup
+          cp -r lib .project_backup/ 2>/dev/null || true
+          cp pubspec.yaml .project_backup/ 2>/dev/null || true
+          cp -r assets .project_backup/ 2>/dev/null || true
+          cp EXCEL_MODULE_GUIDE.md .project_backup/ 2>/dev/null || true
+          echo "✅ Backup complete"
       
-      - name: Recreate Flutter project
+      - name: Verify pubspec.yaml exists
         run: |
-          rm -rf android ios test .metadata analysis_options.yaml
-          flutter create . --project-name alqalah_edu_app
+          if [ ! -f ".project_backup/pubspec.yaml" ]; then
+            echo "❌ pubspec.yaml not found!"
+            exit 1
+          fi
+          echo "✅ pubspec.yaml verified"
       
-      - name: Restore original files
+      - name: Create Flutter project structure
         run: |
+          echo "🔧 Creating Flutter project..."
+          rm -rf android ios .metadata analysis_options.yaml test
+          flutter create . --project-name alqalah_edu_app --platforms android
+          echo "✅ Flutter project created"
+      
+      - name: Restore source files
+        run: |
+          echo "📂 Restoring source files..."
           rm -rf lib
-          cp -r _backup/lib .
-          cp _backup/pubspec.yaml .
-          cp -r _backup/assets . 2>/dev/null || true
-          cp _backup/EXCEL_MODULE_GUIDE.md . 2>/dev/null || true
+          cp -r .project_backup/lib . 2>/dev/null || true
+          cp .project_backup/pubspec.yaml . 2>/dev/null || true
+          cp -r .project_backup/assets . 2>/dev/null || true
+          cp .project_backup/EXCEL_MODULE_GUIDE.md . 2>/dev/null || true
+          echo "✅ Source files restored"
       
-      - name: Create missing assets directory
-        run: mkdir -p assets/images
-      
-      - name: Enable core library desugaring
+      - name: Ensure assets directory exists
         run: |
-          sed -i 's/targetCompatibility = JavaVersion.VERSION_17/targetCompatibility = JavaVersion.VERSION_17\n        coreLibraryDesugaringEnabled true/' android/app/build.gradle
-          sed -i 's/dependencies {/dependencies {\n    coreLibraryDesugaring '\''com.android.tools:desugar_jdk_libs:2.0.4'\''/' android/app/build.gradle
+          echo "📁 Ensuring assets directory exists..."
+          mkdir -p assets/images
+          touch assets/.gitkeep 2>/dev/null || true
+          touch assets/images/.gitkeep 2>/dev/null || true
+          echo "✅ Assets directory ready"
       
-      - run: flutter pub get
+      - name: Install dependencies
+        run: |
+          echo "📦 Running flutter pub get..."
+          flutter pub get
+          echo "✅ Dependencies installed"
       
-      - run: flutter build apk --release
+      - name: Fix Android build configuration
+        run: |
+          echo "🔧 Fixing Android build configuration..."
+          BUILD_GRADLE="android/app/build.gradle"
+          
+          if [ ! -f "$BUILD_GRADLE" ]; then
+            echo "❌ build.gradle not found!"
+            exit 1
+          fi
+          
+          python3 << 'PYEOF'
+          import re
+
+          gradle_file = "android/app/build.gradle"
+          with open(gradle_file, "r") as f:
+              content = f.read()
+
+          # Fix 1: Add coreLibraryDesugaringEnabled
+          if "coreLibraryDesugaringEnabled" not in content:
+              content = re.sub(
+                  r'(targetCompatibility\s*[=:]\s*JavaVersion\.VERSION_\d+)',
+                  r'\1\n        coreLibraryDesugaringEnabled true',
+                  content
+              )
+              print("✅ Added coreLibraryDesugaringEnabled")
+
+          # Fix 2: Add desugaring dependency
+          if "desugar_jdk_libs" not in content:
+              content = re.sub(
+                  r'(dependencies\s*\{)',
+                  r'\1\n    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.0.4"',
+                  content
+              )
+              print("✅ Added desugaring dependency")
+
+          # Fix 3: Ensure minSdk is 23
+          content = re.sub(r'minSdk\s*[=:]\s*\d+', 'minSdk = 23', content)
+          content = re.sub(r'minSdkVersion\s+\d+', 'minSdkVersion 23', content)
+          print("✅ Ensured minSdk is 23")
+
+          # Fix 4: Ensure targetSdk is 34
+          content = re.sub(r'targetSdk\s*[=:]\s*\d+', 'targetSdk = 34', content)
+          content = re.sub(r'targetSdkVersion\s+\d+', 'targetSdkVersion 34', content)
+          print("✅ Ensured targetSdk is 34")
+
+          with open(gradle_file, "w") as f:
+              f.write(content)
+          print("🎉 Android build.gradle updated successfully!")
+          PYEOF
+      
+      - name: Display fixed build.gradle
+        run: |
+          echo "📄 Contents of android/app/build.gradle:"
+          cat android/app/build.gradle
+      
+      - name: Build Release APK
+        run: |
+          echo "🔨 Building Release APK..."
+          flutter build apk --release
+      
+      - name: Verify APK
+        run: |
+          APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
+          if [ -f "$APK_PATH" ]; then
+            echo "✅ APK built successfully!"
+            ls -lh "$APK_PATH"
+          else
+            echo "❌ APK not found!"
+            find build -name "*.apk" 2>/dev/null || true
+            exit 1
+          fi
       
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: alqalah-edu-app-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 30
