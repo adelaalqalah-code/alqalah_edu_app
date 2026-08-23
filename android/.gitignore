@@ -1,10 +1,12 @@
-﻿gradle-wrapper.jar
+﻿# Gradle
 /.gradle
-captures/
-/gradlew
-/gradlew.bat
+/captures/
+
+# IDE
 /local.properties
 GeneratedPluginRegistrant.java
+
+# Signing
 /key.properties
 **/*.keystore
 **/*.jks
