@@ -8,161 +8,23 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.47.1'
-          channel: 'stable'
-          cache: true
-      
-      - name: Backup original files
-        run: |
-          mkdir -p .project_backup
-          cp -r lib .project_backup/ 2>/dev/null || true
-          cp pubspec.yaml .project_backup/ 2>/dev/null || true
-          cp -r assets .project_backup/ 2>/dev/null || true
-      
-      - name: Create Flutter project
-        run: |
-          rm -rf android ios .metadata analysis_options.yaml test
+          flutter-version: '3.24.5'
+          channel: stable
+      - run: |
+          cp -r lib /tmp/lib-backup
+          cp pubspec.yaml /tmp/pubspec-backup.yaml
+          rm -rf android ios .metadata
           flutter create . --project-name alqalah_edu_app --platforms android
-      
-      - name: Restore original files
-        run: |
           rm -rf lib
-          cp -r .project_backup/lib . 2>/dev/null || true
-          cp .project_backup/pubspec.yaml . 2>/dev/null || true
-          cp -r .project_backup/assets . 2>/dev/null || true
-      
-      - name: Create missing source files automatically
-        run: |
-          echo "🔧 Creating missing source files..."
-          
-          # Create directories
-          mkdir -p lib/core/services
-          mkdir -p lib/core/constants
-          mkdir -p lib/screens
-          mkdir -p assets/images
-          
-          # Create supabase_service.dart if missing
-          if [ ! -f "lib/core/services/supabase_service.dart" ]; then
-            cat > lib/core/services/supabase_service.dart << 'EOF'
-import 'package:supabase_flutter/supabase_flutter.dart';
-
-class SupabaseService {
-  static final SupabaseClient client = Supabase.instance.client;
-  static Future<void> initialize() async {}
-}
-EOF
-            echo "✅ Created supabase_service.dart"
-          fi
-          
-          # Create app_theme.dart if missing
-          if [ ! -f "lib/core/constants/app_theme.dart" ]; then
-            cat > lib/core/constants/app_theme.dart << 'EOF'
-import 'package:flutter/material.dart';
-
-class AppTheme {
-  static final ThemeData lightTheme = ThemeData(
-    primarySwatch: Colors.blue,
-    brightness: Brightness.light,
-    useMaterial3: true,
-  );
-
-  static final ThemeData darkTheme = ThemeData(
-    primarySwatch: Colors.blue,
-    brightness: Brightness.dark,
-    useMaterial3: true,
-  );
-}
-EOF
-            echo "✅ Created app_theme.dart"
-          fi
-          
-          # Create splash_screen.dart if missing
-          if [ ! -f "lib/screens/splash_screen.dart" ]; then
-            cat > lib/screens/splash_screen.dart << 'EOF'
-import 'package:flutter/material.dart';
-
-class SplashScreen extends StatelessWidget {
-  const SplashScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.school, size: 80, color: Colors.blue),
-            SizedBox(height: 20),
-            Text(
-              'Alqalah Edu',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 20),
-            CircularProgressIndicator(),
-          ],
-        ),
-      ),
-    );
-  }
-}
-EOF
-            echo "✅ Created splash_screen.dart"
-          fi
-      
-      - name: Fix Android build configuration
-        run: |
-          python3 << 'PYEOF'
-          import re
-          
-          gradle_file = "android/app/build.gradle"
-          with open(gradle_file, "r") as f:
-              content = f.read()
-          
-          # Fix 1: Add coreLibraryDesugaringEnabled
-          if "coreLibraryDesugaringEnabled" not in content:
-              content = re.sub(
-                  r'(targetCompatibility\s*[=:]\s*JavaVersion\.VERSION_\d+)',
-                  r'\1\n        coreLibraryDesugaringEnabled true',
-                  content
-              )
-              print("✅ Added coreLibraryDesugaringEnabled")
-          
-          # Fix 2: Add desugaring dependency
-          if "desugar_jdk_libs" not in content:
-              content = re.sub(
-                  r'(dependencies\s*\{)',
-                  r'\1\n    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.0.4"',
-                  content
-              )
-              print("✅ Added desugaring dependency")
-          
-          # Fix 3: Ensure minSdk is 23
-          content = re.sub(r'minSdk\s*[=:]\s*\d+', 'minSdk = 23', content)
-          content = re.sub(r'minSdkVersion\s+\d+', 'minSdkVersion 23', content)
-          print("✅ Ensured minSdk is 23")
-          
-          with open(gradle_file, "w") as f:
-              f.write(content)
-          print("🎉 Android build.gradle updated!")
-          PYEOF
-      
-      - name: Install dependencies
-        run: flutter pub get
-      
-      - name: Build Release APK
-        run: flutter build apk --release
-      
-      - name: Verify and Upload APK
-        uses: actions/upload-artifact@v4
+          cp -r /tmp/lib-backup lib
+          cp /tmp/pubspec-backup.yaml pubspec.yaml
+      - run: flutter pub get
+      - run: flutter build apk --debug
+      - uses: actions/upload-artifact@v4
         with:
           name: alqalah-edu-app-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: error
+          path: build/app/outputs/flutter-apk/app-debug.apk
