@@ -1,5 +1,4 @@
-﻿$workflow = @'
-name: Build Flutter APK
+﻿name: Build Flutter APK
 
 on:
   push:
@@ -28,19 +27,3 @@ jobs:
         with:
           name: alqalah-edu-app-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
-      - name: Upload to Release
-        uses: softprops/action-gh-release@v1
-        if: github.ref == 'refs/heads/main'
-        with:
-          files: build/app/outputs/flutter-apk/app-debug.apk
-          tag_name: v1.0.0-debug
-          name: Alqalah Edu Debug APK
-          body: Debug build generated automatically
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-'@
-
-Set-Content -Path ".github\workflows\build.yml" -Value $workflow -Encoding UTF8
-git add .github/workflows/build.yml
-git commit -m "Add auto-release for APK"
-git push origin main
