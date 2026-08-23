@@ -13,141 +13,24 @@ jobs:
       
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.5'
+          flutter-version: '3.16.9'
           channel: stable
       
       - name: Backup source files
         run: |
-          mkdir -p /tmp/backup
-          cp -r lib /tmp/backup/
-          cp pubspec.yaml /tmp/backup/
-          cp -r assets /tmp/backup/ 2>/dev/null || true
+          cp -r lib /tmp/lib-backup
+          cp pubspec.yaml /tmp/pubspec-backup.yaml
       
-      - name: Create Flutter project with Android
+      - name: Create Android project
         run: |
-          rm -rf android ios .metadata analysis_options.yaml test
+          rm -rf android ios .metadata
           flutter create . --project-name alqalah_edu_app --platforms android
       
       - name: Restore source files
         run: |
           rm -rf lib
-          cp -r /tmp/backup/lib .
-          cp /tmp/backup/pubspec.yaml .
-          cp -r /tmp/backup/assets . 2>/dev/null || true
-      
-      - name: Fix Android Gradle to version 7.4.2
-        run: |
-          # إنشاء settings.gradle يدوياً مع AGP 7.4.2
-          cat > android/settings.gradle << 'GRADLEOF'
-pluginManagement {
-    def flutterSdkPath = {
-        def properties = new Properties()
-        file("local.properties").withInputStream { properties.load(it) }
-        def flutterSdkPath = properties.getProperty("flutter.sdk")
-        assert flutterSdkPath != null, "flutter.sdk not set in local.properties"
-        return flutterSdkPath
-    }()
-
-    includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
-
-    repositories {
-        google()
-        mavenCentral()
-        gradlePluginPortal()
-    }
-}
-
-plugins {
-    id "dev.flutter.flutter-plugin-loader" version "1.0.0"
-    id "com.android.application" version "7.4.2" apply false
-    id "org.jetbrains.kotlin.android" version "1.9.22" apply false
-}
-
-include ":app"
-GRADLEOF
-
-          # إنشاء gradle-wrapper.properties يدوياً
-          cat > android/gradle/wrapper/gradle-wrapper.properties << 'WRAPPEREOF'
-distributionBase=GRADLE_USER_HOME
-distributionPath=wrapper/dists
-zipStoreBase=GRADLE_USER_HOME
-zipStorePath=wrapper/dists
-distributionUrl=https\://services.gradle.org/distributions/gradle-7.5-all.zip
-WRAPPEREOF
-
-          echo "✅ Android Gradle fixed to 7.4.2"
-      
-      - name: Fix app build.gradle
-        run: |
-          cat > android/app/build.gradle << 'APPEOF'
-plugins {
-    id "com.android.application"
-    id "kotlin-android"
-    id "dev.flutter.flutter-gradle-plugin"
-}
-
-def localProperties = new Properties()
-def localPropertiesFile = rootProject.file('local.properties')
-if (localPropertiesFile.exists()) {
-    localPropertiesFile.withReader('UTF-8') { reader ->
-        localProperties.load(reader)
-    }
-}
-
-def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
-if (flutterVersionCode == null) {
-    flutterVersionCode = '1'
-}
-
-def flutterVersionName = localProperties.getProperty('flutter.versionName')
-if (flutterVersionName == null) {
-    flutterVersionName = '1.0'
-}
-
-android {
-    namespace "com.example.alqalah_edu_app"
-    compileSdkVersion 34
-    ndkVersion flutter.ndkVersion
-
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
-        coreLibraryDesugaringEnabled true
-    }
-
-    kotlinOptions {
-        jvmTarget = '17'
-    }
-
-    sourceSets {
-        main.java.srcDirs += 'src/main/kotlin'
-    }
-
-    defaultConfig {
-        applicationId "com.example.alqalah_edu_app"
-        minSdkVersion 23
-        targetSdkVersion 34
-        versionCode flutterVersionCode.toInteger()
-        versionName flutterVersionName
-    }
-
-    buildTypes {
-        release {
-            signingConfig signingConfigs.debug
-        }
-    }
-}
-
-flutter {
-    source '../..'
-}
-
-dependencies {
-    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
-}
-APPEOF
-
-          echo "✅ app/build.gradle created"
+          cp -r /tmp/lib-backup lib
+          cp /tmp/pubspec-backup.yaml pubspec.yaml
       
       - run: flutter pub get
       
