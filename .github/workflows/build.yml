@@ -16,22 +16,6 @@ jobs:
           flutter-version: '3.16.9'
           channel: stable
       
-      - name: Backup source files
-        run: |
-          cp -r lib /tmp/lib-backup
-          cp pubspec.yaml /tmp/pubspec-backup.yaml
-      
-      - name: Create Android project
-        run: |
-          rm -rf android ios .metadata
-          flutter create . --project-name alqalah_edu_app --platforms android
-      
-      - name: Restore source files
-        run: |
-          rm -rf lib
-          cp -r /tmp/lib-backup lib
-          cp /tmp/pubspec-backup.yaml pubspec.yaml
-      
       - run: flutter pub get
       
       - run: flutter build apk --debug
