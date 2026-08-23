@@ -8,98 +8,35 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      
+      - uses: subosito/flutter-action@v2
         with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.24.5'
+          flutter-version: '3.16.9'
           channel: stable
-          cache: true
-
+      
       - name: Backup source files
         run: |
-          mkdir -p /tmp/backup
-
-          cp -r lib /tmp/backup/lib
-
-          cp pubspec.yaml /tmp/backup/pubspec.yaml
-
-          if [ -d assets ]; then
-            cp -r assets /tmp/backup/assets
-          fi
-
-      - name: Recreate Android project
+          cp -r lib /tmp/lib-backup
+          cp pubspec.yaml /tmp/pubspec-backup.yaml
+      
+      - name: Create Android project
         run: |
           rm -rf android ios .metadata
-          flutter create . \
-            --project-name alqalah_edu_app \
-            --platforms android
-
+          flutter create . --project-name alqalah_edu_app --platforms android
+      
       - name: Restore source files
         run: |
           rm -rf lib
-          cp -r /tmp/backup/lib ./lib
-
-          cp /tmp/backup/pubspec.yaml ./pubspec.yaml
-
-          if [ -d /tmp/backup/assets ]; then
-            rm -rf assets
-            cp -r /tmp/backup/assets ./assets
-          fi
-
-      - name: Configure Android
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path("android/app/build.gradle")
-          text = path.read_text()
-
-          text = text.replace(
-              "minSdkVersion flutter.minSdkVersion",
-              "minSdkVersion 23"
-          )
-
-          text = text.replace(
-              "targetSdkVersion flutter.targetSdkVersion",
-              "targetSdkVersion 34"
-          )
-
-          path.write_text(text)
-          PY
-
-      - name: Get Flutter dependencies
-        run: |
-          flutter clean
-          flutter pub get
-
-      - name: Check Flutter project
-        run: |
-          flutter doctor -v
-          flutter analyze
-
-      - name: Build APK
-        run: |
-          flutter build apk --debug
-
-      - name: Verify APK
-        run: |
-          test -f build/app/outputs/flutter-apk/app-debug.apk
-          ls -lh build/app/outputs/flutter-apk/app-debug.apk
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+          cp -r /tmp/lib-backup lib
+          cp /tmp/pubspec-backup.yaml pubspec.yaml
+      
+      - run: flutter pub get
+      
+      - run: flutter build apk --debug
+      
+      - uses: actions/upload-artifact@v4
         with:
           name: alqalah-edu-app-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
-          if-no-files-found: error
