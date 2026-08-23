@@ -29,7 +29,9 @@ jobs:
       - name: Backup source files
         run: |
           mkdir -p /tmp/backup
+
           cp -r lib /tmp/backup/lib
+
           cp pubspec.yaml /tmp/backup/pubspec.yaml
 
           if [ -d assets ]; then
@@ -47,6 +49,7 @@ jobs:
         run: |
           rm -rf lib
           cp -r /tmp/backup/lib ./lib
+
           cp /tmp/backup/pubspec.yaml ./pubspec.yaml
 
           if [ -d /tmp/backup/assets ]; then
