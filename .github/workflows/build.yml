@@ -10,11 +10,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.5'
           channel: stable
-      - run: |
+      
+      - name: Backup and recreate project
+        run: |
           cp -r lib /tmp/lib-backup
           cp pubspec.yaml /tmp/pubspec-backup.yaml
           rm -rf android ios .metadata
@@ -22,8 +25,22 @@ jobs:
           rm -rf lib
           cp -r /tmp/lib-backup lib
           cp /tmp/pubspec-backup.yaml pubspec.yaml
+      
+      - name: Fix Android Gradle Plugin version
+        run: |
+          # تعديل settings.gradle لاستخدام AGP 7.4.2 بدلاً من 8.x
+          sed -i 's/id "com.android.application" version "[^"]*"/id "com.android.application" version "7.4.2"/g' android/settings.gradle
+          sed -i 's/id "org.jetbrains.kotlin.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "1.9.22"/g' android/settings.gradle
+          
+          # تعديل gradle-wrapper
+          sed -i 's/gradle-[0-9.]*-all.zip/gradle-7.5-all.zip/g' android/gradle/wrapper/gradle-wrapper.properties
+          
+          echo "✅ Android Gradle Plugin downgraded to 7.4.2"
+      
       - run: flutter pub get
+      
       - run: flutter build apk --debug
+      
       - uses: actions/upload-artifact@v4
         with:
           name: alqalah-edu-app-apk
