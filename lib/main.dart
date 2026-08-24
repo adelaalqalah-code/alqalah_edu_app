@@ -1,52 +1,42 @@
 ﻿import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'core/services/supabase_service.dart';
-import 'core/constants/app_theme.dart';
-import 'screens/splash_screen.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // تثبيت الاتجاه العمودي فقط
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
-
-  // تهيئة Supabase (مع حماية من الأخطاء)
-  try {
-    await Supabase.initialize(
-      url: 'https://your-project.supabase.co',
-      anonKey: 'your-anon-key',
-    );
-  } catch (e) {
-    debugPrint('⚠️ Supabase init failed: $e');
-  }
-
-  runApp(const ProviderScope(child: AlqalahEduApp()));
+void main() {
+  runApp(const TestApp());
 }
 
-class AlqalahEduApp extends StatelessWidget {
-  const AlqalahEduApp({super.key});
+class TestApp extends StatelessWidget {
+  const TestApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'منصة الأستاذ',
+      title: 'Alqalah Edu',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
-      locale: const Locale('ar', 'SA'),
-      builder: (context, child) {
-        return Directionality(
-          textDirection: TextDirection.rtl,
-          child: child!,
-        );
-      },
-      home: const SplashScreen(),
+      home: Scaffold(
+        appBar: AppBar(
+          title: const Text('منصة الأستاذ', textDirection: TextDirection.rtl),
+          backgroundColor: Colors.blue,
+        ),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.school, size: 80, color: Colors.blue),
+              SizedBox(height: 20),
+              Text(
+                'مرحباً بك في منصة الأستاذ!',
+                textDirection: TextDirection.rtl,
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 10),
+              Text(
+                'التطبيق يعمل بنجاح ✅',
+                style: TextStyle(fontSize: 18, color: Colors.green),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
