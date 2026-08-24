@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -15,11 +15,15 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // تهيئة Supabase
-  await Supabase.initialize(
-    url: 'https://your-project.supabase.co',
-    anonKey: 'your-anon-key',
-  );
+  // تهيئة Supabase مع معالجة الأخطاء (لا يتعطل إذا فشل)
+  try {
+    await Supabase.initialize(
+      url: 'https://your-project.supabase.co',
+      anonKey: 'your-anon-key',
+    );
+  } catch (e) {
+    debugPrint('⚠️ Supabase init failed (expected in offline mode): $e');
+  }
 
   runApp(const ProviderScope(child: AlqalahEduApp()));
 }
