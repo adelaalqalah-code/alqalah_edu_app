@@ -9,20 +9,20 @@ import 'screens/splash_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // تثبيت الاتجاه RTL
+  // تثبيت الاتجاه العمودي فقط
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  // تهيئة Supabase مع معالجة الأخطاء (لا يتعطل إذا فشل)
+  // تهيئة Supabase (مع حماية من الأخطاء)
   try {
     await Supabase.initialize(
       url: 'https://your-project.supabase.co',
       anonKey: 'your-anon-key',
     );
   } catch (e) {
-    debugPrint('⚠️ Supabase init failed (expected in offline mode): $e');
+    debugPrint('⚠️ Supabase init failed: $e');
   }
 
   runApp(const ProviderScope(child: AlqalahEduApp()));
